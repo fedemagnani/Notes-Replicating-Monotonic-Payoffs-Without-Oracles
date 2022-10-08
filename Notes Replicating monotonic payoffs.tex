@@ -1,0 +1,781 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath,amssymb,amsthm,color,mathtools}
+\usepackage{blindtext}
+\usepackage[a4paper, total={6in, 10in}]{geometry}
+\usepackage{graphicx,hyperref}
+\graphicspath{ {./images/} }
+\begin{document}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+
+\begin{titlepage}
+    \begin{center}
+        \vspace*{1cm}
+
+        \Huge
+        \textbf{Notes on ``Replicating Monotonic Payoffs Without Oracles"}
+
+        \vspace{0.5cm}
+        \LARGE
+
+
+        \vspace{1.5cm}
+
+        \textbf{Federico Magnani} \\
+        \medskip
+        \href{https://twitter.com/0xdrun}{@0xdrun}
+        \vspace{0.5cm}
+        \\
+        \href{https://twitter.com/0xdrun}{\includegraphics[width=0.08\textwidth]{./images/0xdrun.jpeg}}
+        \Large
+
+        \vfill
+
+        Notes on the work of Angeris, Evans, Chitra (2021)
+        \\"Replicating Monotonic Payoffs Without Oracles"
+
+        \vspace{0.8cm}
+
+
+    \end{center}
+\end{titlepage}
+\Large
+\section{Introduction}
+\small
+I took these notes while reading the paper \textit{Replicating Monotonic Payoffs Without Oracles} by Angeris, Evans, Chitra (2021).
+In these notes I wrote down some proofs in order to have a better understanding of the findings of the paper.
+The paper is available \href{https://arxiv.org/abs/2101.03356}{here}.
+\\\\
+I was amazed by their work and I hope that these notes can be useful to someone that wants to challenge the statements of the paper. I take no credit about the findings present in this work and I encourage everyone to read the paper and to try to replicate the results. As said, my work is just about writing down some proofs and adding heuristic comments in order to have a better understanding of the paper. I would be very happy to receive feedback and corrections: DM me on twitter \href{https://twitter.com/0xdrun}{@0xdrun}
+\newline\newline
+In a nutshell, a liquidity provider opens a position made by $f(p)$ of a numeraire asset (the payoff) and $g(p)$ of risky asset. \newline By doing so, the liquidity provider mints a liquidity-token associated with his position: then, he can sell the right to claim $f(p)$ to an external agent (the option buyer) via an option-token. So, the option buyer doesn't reserve the right of claiming the risky asset at a given strike price (as in a vanilla option), but the right of claiming the payoff $f(p)$ of the liquidity provider's position, which varies according to the price of the referenced risky asset. \newline
+The reserve referred to the numeraire asset of the position is pegged to $f(p)$ thanks to the arbitrageur activity: for example, given an external price $p$ and a current position $(f(q),g(q))$ with $q<p$, arbitrageurs are incentivized to trade against the CFMM (swapping the risky amount into numeraire) moving the position to $(f(p),g(p))$ keeping the extra amount as a profit. This is the reason why $g(p)$ is also called ``replication cost", because it is ``used'' to allow the portfolio rebalancing activity keeping the peg between the reserve of the numeraire asset and $f(p)$
+\newline
+The authors suggest this possible implementation: once that the option buyer claims $f(p)$, both the liquidity-token and the option-token are burned, the numeraire amount is transferred to the option buyer and what is left of the risky asset is transferred back to the original liquidity provider.
+
+\section{Replicating payoffs}
+Suppose to have a portfolio $(f(p),g(p))\in \mathbb{R^\text{2}_+}$ where $f(p)$ is the amonut of a numeraire asset (i.e. USDC) and $g(p)$ is the amount of a risky asset (i.e. ETH).\newline
+Let $p$ be the price of the risky asset (i.e. the amount of numeraire I get by selling one unit of risky asset).\newline
+Expressing the portfolio value in terms of amount of numeraire, we have that for a given level of price the portfolio value is:
+\begin{equation}
+    V(p) = f(p) + pg(p)
+\end{equation}
+Such portfolio expresses the amount of numeraire as function of price as a ``target" nunmeraire amount to be held at a given price level.
+\newline
+The function $f:\mathbb{R_+}\rightarrow\mathbb{R}$ is set to be \textbf{monotonically increasing, nonnegative}, thus
+\begin{align*}
+    f(p)\geq 0 \;\forall p \qquad f(p+h)\geq f(p), \; h\geq 0
+\end{align*}
+In order to reach the target amount of numeraire for a given price level, we need to buy or sell the risky asset: in other words, we need to vary $g(p)$.
+\newline
+If the price moves from $p$ to $p+h$ with $h\geq 0$, the portfolio inflow of numeraire is \newline $f(p+h)-f(p)$, while the portfolio outflow of risky asset is $g(p)-g(p+h)$ sold at price $(p+h)$.
+\begin{align*}
+    (p+h)(g(p) - g(p+h))    & = f(p+h)-f(p)                         \\
+    g(p) - g(p+h)           & = \frac{1}{p+h}f(p+h)-f(p)            \\
+    \frac{g(p) - g(p+h)}{h} & = \frac{1}{p+h}\frac{f(p+h)-f(p)}{h}  \\
+    \frac{g(p+h) - g(p)}{h} & = -\frac{1}{p+h}\frac{f(p+h)-f(p)}{h} \\
+\end{align*}
+Capturing an infinitesimal variation in price (i.e. $h\rightarrow 0$), we come up with the limit of incremental ratio:
+
+\begin{align*}
+    \lim_{h\rightarrow 0}\frac{g(p+h) - g(p)}{h} & = \lim_{h\rightarrow 0}-\frac{1}{p+h}\frac{f(p+h)-f(p)}{h} \\
+\end{align*}
+Which corresponds to
+\begin{equation}
+    g'(p)= -\frac{1}{p}f'(p) \label{eq:2}
+\end{equation}
+The upfront minus sign describes the inverse relationship between the amounts of risky asset and numeraire in the portfolio as the price of the risky asset varies.
+\newline
+Since the function $f$ is monotonically increasing ($f'\geq 0 \; \forall p$) and recalling also that $p\geq 0$ we have that $g'(p)\leq 0 \; \forall p$.
+Moreover, the quantity $g(p)$ held by the portfolio can't be negative, so $g(p)\geq 0 \; \forall p$. This makes $g(p)$ monotonically decreasing and nonnegative.
+Indeed, designing $g$ so that
+\begin{align*}
+    \lim_{p\rightarrow \infty}g(p) = 0
+\end{align*}
+You have that
+\begin{align*}
+    \int_{p}^{\infty}-g'(q)dq & = -\int_{p}^{\infty}g'(q)dq \\
+                              & =-[g(q)]_{p}^{\infty}       \\
+                              & = -(g(\infty)-g(p))         \\
+                              & = g(p)-g(\infty)            \\
+                              & = g(p)                      \\
+\end{align*}
+Thus, considering a price range $[\alpha,\beta]\; \alpha\geq 0, \beta\geq\alpha$, the amount of risky asset we must hold in portfolio in order to sure that the numeraire quantity $f(p)$ is feasible $\forall p\in [\alpha,\beta]$ is:
+\begin{align*}
+    g(p) & = \int_{\alpha}^{\beta}-g'(p)dp               \\
+         & = \int_{\alpha}^{\beta}-(-\frac{1}{p}f'(p))dp \\
+         & = \int_{\alpha}^{\beta}\frac{f'(p)}{p}dp      \\
+\end{align*}
+Or alternatively
+\begin{align*}
+    g(p) & = \int_{\alpha}^{\beta}\frac{\frac{d}{dp}f(p)}{p}dp \\
+         & =\int_{\alpha}^{\beta}\frac{df(p)}{p}
+\end{align*}
+Thus, considering $p\in[\alpha,\beta] \; \alpha\geq 0, \beta \geq \alpha$ you can express the amount of risky asset to be held in portfolio as
+\begin{equation}
+    g(p) =\int_{p}^{\beta}\frac{f'(q)}{q}dq= \int_{p}^{\beta}\frac{df(q)}{q}
+\end{equation}
+\section{Portfolio value}
+As the price moves, new equilibrium portfolios are reached. Defining a price range, in order to group all the equilibrium portfolios within that price range we can define
+\begin{align*}
+    S=\{(f(p),g(p))\in\mathbb{R^\text{2}_+}|\;p\in [\alpha,\beta]\}
+\end{align*}
+Indeed the price varies from $p_0\in [\alpha,\beta]$ to $p_1\in [\alpha,\beta]$ and in order to reach the desirable amount of numeraire $f(p_1)$ you move the amount of risky asset from $g(p_0)$ to $g(p_1)$, obtaining the new equilibrium portfolio $(f(p_1),g(p_1))\in S$ whose value is $V(p_1)=f(p_1)+g(p_1)p_1$.
+\newline
+The value of a generic portfolio is defined as $V(p)=f(p)+pg(p)$ but also as
+\begin{equation}
+    V(p) =V(a) +\int_{a}^p g(q) dq \label{eq:4}
+\end{equation}
+Indeed, recalling that in general via integration by parts you can write: \newline$\int^{b}_{a}f'(q)g(q) dq = [f(q)g(q)]_{a}^{b} - \int^{b}_{a}f(q)g'(q) dq$,
+you find that
+\begin{align*}
+    V(p) & =V(\alpha) +\int_{\alpha}^p g(q) dq                              \\
+         & = V(\alpha) + [q g(q)]_{\alpha}^{p} - \int_{\alpha}^p p g'(q) dq
+\end{align*}
+Recalling \eqref{eq:2} you can write
+
+\begin{align*}
+    V(p) & =V(\alpha) + [q g(q)]_{\alpha}^{p}  + \int_{\alpha}^p p \frac{1}{p}f'(p) dq \\
+    V(p) & =V(\alpha) + [q g(q)]_{\alpha}^{p}  + \int_{\alpha}^p f'(p) dq              \\
+    V(p) & =V(\alpha) + [q g(q)]_{\alpha}^{p}  + [f(q)]_{\alpha}^{p}                   \\
+    V(p) & =V(\alpha) + (pg(p)-ag(\alpha))  + (f(p)-f(\alpha))                         \\
+    V(p) & =V(\alpha)  -f(\alpha)-ag(\alpha)+f(p)+pg(p)                                \\
+    V(p) & =V(\alpha)  -V(\alpha)+V(p)                                                 \\
+    V(p) & =V(p)                                                                       \\
+\end{align*}
+And this identity proofs \eqref{eq:4}
+\newline
+Some properties of the portfolio value function $V(p)$ are:
+\begin{itemize}
+    \item $V(p)$ is \textbf{nonnegative} since $f(p)\geq 0, \; g(p)\geq 0 \quad \forall p\in[\alpha,\beta] \; \alpha\geq 0, \beta \geq \alpha$
+    \item $V(p)$ is \textbf{nondecreasing} since $V(\alpha)\geq 0$ and $ \int_{\alpha}^p g(q) dq \geq 0$ \newline(because $g(p)\geq 0 \quad \forall p\in[\alpha,\beta] \; \alpha\geq 0, \beta \geq \alpha$, so the area below $g$ will be always above the x-axis)
+    \item $V(p)$ is \textbf{concave} because $\frac{d^2}{dp^2}V(P)\leq 0 \quad \forall p\in[\alpha,\beta] \; \alpha\geq 0, \beta \geq \alpha$
+\end{itemize}
+Indeed (recall that with \eqref{eq:2} we showed that $g(p)$ is nonincreasing
+):
+\begin{align*}
+    \frac{d^2}{dp^2}V(P) & =\frac{d}{dp} \left(\frac{d}{dp}V(P)\right)                                                   \\
+                         & =\frac{d}{dp} \left(f'(p) +g(p) +pg'(p)\right)                                                \\
+                         & =\frac{d}{dp} \left(f'(p) +g(p) +p\left(-\frac{1}{p}f'(p)\right) \right)                      \\
+                         & =\frac{d}{dp} g(p) \leq 0 \quad \forall p\in[\alpha,\beta] \; \alpha\geq 0, \beta \geq \alpha \\
+\end{align*}
+\section{CFMM}
+Taking advantage of the properties of the portfolio value function $V(p)$ it is possible to write an invariant trading function $\Psi(R_1,R_2)$ where $\Psi: \mathbb{R^\text{2}_+}\rightarrow\mathbb{R}$ for a given price level:
+\begin{equation}
+    \Psi(R_1,R_2) = \inf_{p\in[\alpha,\beta]} R_1 + pR_2 -V(p) \quad \alpha\geq 0, \beta \geq \alpha \label{eq:5}
+\end{equation}
+Where $R_1$ is the reserve of the numeraire asset, while $R_2$ is the reserve of the risky asset. \newline
+Notice that since $V(p)$ is concave, $-V(p)$ is convex and adding the affine function $R_1 +pR_2$ doesn't affect the nature of $R_1 +pR_2 -V(p)$ as a convex function. \newline
+The rough idea is that $R_1 + pR_2$ is the ``actual'' portfolio value (because it is evaluated in the current reserves) while $V(p)$ is the ``desired'' portfolio value (because it is evaluated via the formulas of the theoretical amounts). \newline
+Via \eqref{eq:5} you allow trades that lead to the minimum distance between the ``actual'' and the ``desired'' portfolio value. \newline
+\newline
+By calling $V_R(p)=R_1 + pR_2$, you find $\Psi(R_1,R_2)$ by evaluating $V_R(p)-V(p)$ in the minimum point $p^*$
+\begin{align*}
+    \Psi(R_1,R_2) = \inf_{p\in[\alpha,\beta]} R_1 + pR_2 -V(p) = R_1 + pR_2 -V(p)|_{p=p^*}
+\end{align*}
+You find $p^*$ by appplying the first order condition on $R_1 + pR_2 -V(p)$ since the objective function is convex:
+\begin{align*}
+    p^*:=\frac{d}{dp} \left(R_1 + pR_2 -V(p)\right) = 0
+\end{align*}
+Recalling that $R_1 + pR_2 = V_R(p)=V_R(\alpha) + \int_{\alpha}^p R_2 dq$
+\begin{align*}
+    \frac{d}{dp} \left(R_1 + pR_2 -V(p)\right)                                                                      & = 0 \\
+    \frac{d}{dp} \left(V_R(\alpha) + \int_{\alpha}^p R_2 dq -\left(V(\alpha)+\int_{\alpha}^{p}g(q)dq\right) \right) & = 0 \\
+    \frac{d}{dp} \left(V_R(\alpha) -V(\alpha) + \int_{\alpha}^p R_2 -g(q) dq  \right)                               & = 0 \\
+\end{align*}
+Now we take advantage of the alternative notation provided by \eqref{eq:4}: indeed we can neglect $V_R(\alpha)$ and $V(\alpha)$ since they are not function of $p$, while $\frac{d}{dx}\int_{\alpha}^x w(q) dw = w(x)$
+\begin{align*}
+    \frac{d}{dp} \left(V_R(\alpha) -V(\alpha) + \int_{\alpha}^p R_2 -g(q) dq  \right) & = 0  \\
+    R_2 -g(p)                                                                         & =0   \\
+    g(p)                                                                              & =R_2 \\
+\end{align*}
+Not surprisingly, the trade function requires that the actual reserve of the risky asset is equal to the theoretical reserve of the risky asset for the given price $p$. \newline
+Thus:
+\begin{equation}
+    g(p)=R_2 \qquad p^* = g^{-1}(R_2) \label{eq:6}
+\end{equation}
+Recalling \eqref{eq:5}, it follows that
+\begin{equation}
+    \Psi(R_1,R_2) = R_1 + g^{-1}(R_2)R_2 - f(g^{-1}(R_2)) - g^{-1}(R_2)g(g^{-1}(R_2)) \label{eq:7}
+\end{equation}
+Moreover, if $g$ is a continuous function, you have that $g(g^{-1}(R_2))=R_2$
+Thus, in such context you have the following simplified version of the CFMM:
+\begin{align*}
+    \Psi(R_1,R_2) & = R_1 + g^{-1}(R_2)R_2 - f(g^{-1}(R_2)) - g^{-1}(R_2)g(g^{-1}(R_2)) \\
+    \Psi(R_1,R_2) & = R_1 + g^{-1}(R_2)R_2 - f(g^{-1}(R_2)) - g^{-1}(R_2)R_2            \\
+    \Psi(R_1,R_2) & = R_1 - f(g^{-1}(R_2))                                              \\
+\end{align*}
+Thus, the simplified version of the CFMM is:
+\begin{equation}
+    \Psi(R_1,R_2) = R_1 - f(g^{-1}(R_2)) \qquad g\in C^0(\mathbb{R_+}) \label{eq:8}
+\end{equation}
+It is noticeable that, even if the starting objective function to be minimized $R_1 +pR_2 -V(p)$ is convex, the resultant trading function $\Psi(R_1,R_2)$ is concave. \newline
+Indeed, recalling that the pointwise infimum of a family of affine functions is always concave, you have that
+by definition $\Psi(R_1,R_2)$ is the infimum of $R_1 +pR_2 -V(p)$, that is a family of functions that are linear in $R_1$ and $R_2$ (recall that the trading function is not a function of $p$).
+\section{Designing the replication cost $g(p)$}
+A needed property of the replication cost $g(\cdot)$ is that it doesn't explode as the upper bound of the considered price range of the risky asset tends to infinity. In other words it's mandatory that:
+\begin{align*}
+    g(p)<\infty \qquad \forall p \in \mathbb{R_+}
+\end{align*}
+Considering a price range $[\alpha,\beta]$ we don't want that $g(p)$ explodes as $\beta\rightarrow\infty$, because this would make unfeasible the replication of the payoff. \newline
+To avoid this, it is desirable that the payoff function exhibites sublinear growth, meaning that
+\begin{align*}
+    \lim_{p\rightarrow\infty} \frac{f(p)}{p} = 0
+\end{align*}
+This is translated into a sufficient condition:
+\begin{align*}
+    \exists\; p_{0} \in \mathbb{R_+}: f(p)\leq Cp^{1-\epsilon} \; \forall p \geq p_{0}, \epsilon>0, C>0 \implies g(p)<\infty \; \forall p \in \mathbb{R_+}
+\end{align*}
+In a sense, in order to make the replication cost $g(p)$ upperly bounded for $\beta\rightarrow\infty$, the payoff function needs to grow slower than any other linear function at least after passing a particular price level. \newline
+Indeed, considering $f(p)$ with sublinear growth:
+\begin{align*}
+    f(p)                                                                    & \leq Cp^{1-\epsilon}                                                                    \\
+    f'(p)                                                                   & \leq (1-\epsilon)Cp^{-\epsilon}                                                         \\
+    \frac{f'(p)}{p}                                                         & \leq (1-\epsilon)Cp^{-\epsilon-1}                                                       \\
+    \int_{p_0}^{\beta}\frac{f'(p)}{p} dp                                    & \leq \int_{p_0}^{\beta}(1-\epsilon)Cp^{-\epsilon-1}dp                                   \\
+    \int_{p}^{p_0}\frac{f'(q)}{q} dp + \int_{p_0}^{\beta}\frac{f'(p)}{p} dq & \leq \int_{p}^{p_0}\frac{f'(q)}{q} dq +\int_{p_0}^{\beta}(1-\epsilon)Cp^{-\epsilon-1}dp \\
+\end{align*}
+Since $g(p) = \int_{p}^{p_0}\frac{f'(q)}{q} dq + \int_{p_0}^{\beta}\frac{f'(p)}{p} dp $
+\begin{align*}
+    g(p) & \leq \int_{p}^{p_0}\frac{f'(q)}{q} dq +\int_{p_0}^{\beta}(1-\epsilon)Cp^{-\epsilon-1}dp                                                 \\
+    g(p) & \leq \int_{p}^{p_0}\frac{f'(q)}{q} dq +(1-\epsilon)C\left[-\frac{p^{-\epsilon}}{\epsilon} \right]^\beta_{p_0}                           \\
+    g(p) & \leq \int_{p}^{p_0}\frac{f'(q)}{q} dq +(1-\epsilon)C\left( \frac{1}{p_0^{\epsilon}\epsilon} - \frac{1}{\beta^{\epsilon}\epsilon}\right) \\
+\end{align*}
+Taking the limit as $\beta\rightarrow\infty$:
+\begin{align*}
+    \lim_{\beta\rightarrow\infty} \int_{p}^{p_0}\frac{f'(q)}{q} dq +(1-\epsilon)C\left( \frac{1}{p_0^{\epsilon}\epsilon} - \frac{1}{\beta^{\epsilon}\epsilon}\right) = \int_{p}^{p_0}\frac{f'(q)}{q} dq +\frac{(1-\epsilon)C}{p_0^{\epsilon}\epsilon} <\infty
+\end{align*}
+It follows that, via the comparison theorem of improper integrals
+\begin{align*}
+     & \lim_{\beta\rightarrow\infty} g(p) \leq \lim_{\beta\rightarrow\infty} \int_{p}^{p_0}\frac{f'(q)}{q} dq +(1-\epsilon)C\left( \frac{1}{p_0^{\epsilon}\epsilon} - \frac{1}{\beta^{\epsilon}\epsilon}\right) \\
+     & \lim_{\beta\rightarrow\infty} g(p) \leq \int_{p}^{p_0}\frac{f'(q)}{q} dq +\frac{(1-\epsilon)C}{p_0^{\epsilon}\epsilon} <\infty
+\end{align*}
+Thus, $g(p)<\infty \; \forall p\in\mathbb{R_+}$
+\section{Arbitrageurs earnings}
+As $p$ increases, arbitrageurs are incentivized to rebalance portfolios. \newline Suppose that the current position is associated with a price $p_0$ while the external market price is $p$. \newline This means that the unblanced position $(f(p_0),g(p_0))$ is valued $f(p_0)+pg(p_0)$. \newline By rebalancing the portfolio, the arbitrageur can move reserves so that the implied price becomes $p_1$, leading to the position $(f(p_1),g(p_1))$. \newline The value of such position now is $f(p_1)+pg(p_1)$: any difference between the prior (unbalanced) and post (balanced) value of the portfolio is the arbitrageur's earnings $\Pi(p)$. \newline
+Thus, rebalancing the current position can be seen as:
+\begin{align*}
+    f(p_0)+pg(p_0) = f(p_1)+pg(p_1) + \Pi(p_1)
+\end{align*}
+Defining $V_{ante}(p)=f(p_0)+pg(p_0)$ and $V_{post}(p)=f(p_1)+pg(p_1)$, it can be seen that
+\begin{align*}
+    \Pi(p_1) = -(V_{post}(p)-V_{ante}(p))
+\end{align*}
+Thus, arbitrageur's earnings can be seen as the \textbf{negative variation of the value of the position} after the rebalancing activity.
+Applying the first order condition, it can be seen that the optimal price $p_1^*$ that the arbitrageur should set in rebalancing in order to maximize his profit is
+\begin{align*}
+    p_1^* := \frac{d}{dp_1}\Pi(p_1)=0
+\end{align*}
+it follows that
+\begin{align*}
+    \frac{d}{dp_1}\left(f(p_0)+pg(p_0) -f(p_1)-pg(p_1)\right) & = 0 \\
+    -f'(p_1)-pg'(p_1)                                         & = 0 \\
+\end{align*}
+Recalling \eqref{eq:2}
+\begin{align*}
+    -f'(p_1)-p\left(-\frac{1}{p_1}f'(p_1)\right) & = 0 \\
+    \frac{p}{p_1}f'(p_1)-f'(p_1)                 & = 0 \\
+\end{align*}
+Multiplying both sides by $-1$
+\begin{align*}
+    f'(p_1)-\frac{p}{p_1}f'(p_1)        & = 0 \\
+    f'(p_1)\left(1-\frac{p}{p_1}\right) & = 0 \\
+\end{align*}
+that is true whenever $p_1=p$. This is the unique maximum point of the profit function and that's why it is experienced unimodality in the profit function. Thus, the optimal price to be set by the arbitrageur in order to maximize his profit is exactly the external market price:
+\begin{align}
+    p_1^* = p
+\end{align}
+It follows that the optimal profit for the arbitrageur (profit function evaluated in the maximum point) is
+\begin{equation}
+    \Pi(p_1)|_{p_1=p_1^*=p}=p(g(p_0)-g(p))+f(p_0)-f(p)
+\end{equation}
+In a sense, since the arbitrageur's profit is associated with the negative variation in value of the current position, the arbitrageur is interested in minimizing the value of the post-value of the position by moving reserves given a current external market price $p$: thus, if the external price is a feasible point, the arbitrageur will set reserves so that the implied price is the external one (because it is the maximum point of the profit function). So, if $p$ is feasible, after rebalancing the value of the position will be minimized meaning that $V_{post}(p)\leq V_{ante}(p)$. this implies the non-negativity of the profit function
+\begin{align*}
+    V_{post}(p)\leq V_{ante}(p) \implies \Pi(p)=V_{ante}(p)-V_{post}(p)\geq 0
+\end{align*}
+
+Given a sequence of $n$ price changes $\{p_0, p_1, \dots, p_n\}$, the cumulated profit of the arbitrageur would be
+\begin{align*}
+    \Pi_n := \sum_{i=1}^{n}\Pi(p_i) = \sum_{i=1}^{n}p_i(g(p_{i-1})-g(p_i))+f(p_{i-1})-f(p_i)
+\end{align*}
+But since $f(p_i)$ corresponds to the value of the position before the price change, it can be seen that $\sum_{i=1}^{n}f(p_{i-1})-f(p_i)=f(p_0) -f(p_n)$
+\newline
+Thus
+\begin{align*}
+    \Pi_n & = f(p_0) -f(p_n)+\sum_{i=1}^{n}p_i(g(p_{i-1})-g(p_i))
+\end{align*}
+Bringing the minus upfront the series in order to make it look like a Riemann sum
+\begin{align*}
+    \Pi_n & = f(p_0) -f(p_n)-\sum_{i=1}^{n}p_i(g(p_i)-g(p_{i-1}))
+\end{align*}
+Moving from a discrete to a continuous set of prices where $P_t$ is a price process with $t\in[0,T], T>0$
+\begin{align*}
+    \Pi_n & = f(P_0) -f(P_T)-\int_{0}^{T}P_t  \; dg(P_t)              \\
+          & = f(P_0) -f(P_T)-\int_{0}^{T}P_t  \; \frac{dg(P_t)}{dt}dt \\
+\end{align*}
+Integrating by parts
+\begin{align*}
+    \Pi_n & = f(P_0) -f(P_T) -\left( \left[
+        P_t g(P_t)
+    \right]^T_0 -     \int_{0}^{T}g(P_t)  \; \frac{dP_t}{dt}dt                          \right) \\
+    \Pi_n & = f(P_0) -f(P_T) - P_T g(P_T)+ P_0 g(P_0) +     \int_{0}^{T}g(P_t)  \; dP_t         \\
+\end{align*}
+Which leads to
+\begin{equation}
+    \Pi_n = V(P_0) -V(P_T) +     \int_{0}^{T}g(P_t)  \; dP_t \label{eq:11}
+\end{equation}
+Indeed, we still have the negative of the variation of the position value (from the start to the end of the process), but we have also the ``path" dependent part $\int_{0}^{T}g(P_t)  \; dP_t$ associated with the ``continuity" of the rebalancing activity performed by the arbitrageur.
+\newpage
+\section{Cash or nothing calls}
+The payoff function here is simple: the option buyer can claim 1 if $p> p_0$ otherwhise 0. Because of this nature, you can consider the payoff as a simple indicator function where the set is $(p_0,\infty)$
+\begin{align*}
+    f(p) = \begin{cases}
+               1 & \text{if } p>p_0 \\
+               0 & \text{otherwise}
+           \end{cases} = I_{(p_0,\infty)}(p)
+\end{align*}
+It follows that the replication cost is
+\begin{align*}
+    g(p) & =\int_{p}^{\infty}\frac{\frac{d}{dq}f(q)}{q}  \; dq \\
+         & =\int_{p}^{\infty}\frac{1}{q}  \; df(q)
+\end{align*}
+You can conceive such integral as a Riemann-Stieltjes integral. Moreover, since $I_{(p_0,\infty)}(p)$ is an increasing step function with discontinuity in $p_0$ while $\frac{1}{q}$ is integrable over the whole set $(p,\infty)$, it is possible to apply the first mean-value theorem for Riemann-Stieltjes integrals which generically allows to write
+\begin{align*}
+    \int_\alpha^\beta f(x) \; da(x) = f(x_0) (a(\beta)-a(\alpha))\quad x_0\in[\alpha,\beta]
+\end{align*}
+Analogously, it is possible to write
+\begin{equation}
+    g(p)=\int_{p}^{\infty}\frac{1}{q}  \; df(q)=\frac{1}{p_0}(f(\infty)-f(p))=\frac{1-f(p)}{p_0} \quad p_0>0, \; p\in[0,\infty) \label{eq:12}
+\end{equation}
+In other words when $p\leq p_0$ the liquidity provider opens a position $(f(p),g(p))=\left(0,\frac{1}{p_0}\right)$ and sells the option-token to another buyer.
+Whenever $p>p_0$, arbitrageurs are incentivized to trade against the CFMM in order to rebalance the position. Indeed, now they are allowed to sell $\frac{1}{p_0}$ at the external price $p$ obtaining $\frac{p}{p_0}$ amount of numeraire (recall that $\frac{p}{p_0}>1 $ because $ p>p_0$). Thus, they leave one unit of numeraire in the CFMM and take the rest as a profit: The position now moved to $(f(p),g(p))=(0,1)$ and the arbitrageur gained $\frac{p}{p_0}-1$
+\newline\newline
+The replication cost $g$ inherits from the payoff function $f$ the discontinuous nature: thus the condition $\exists\; p\geq 0 : g(p)=R_2$ (depicted in \eqref{eq:6}) is not guaranteed.
+On the other hand, the inverse of the replication cost is the following
+\begin{align*}
+    g(p) = \;      & Y = \frac{1-f(p)}{p_0} \\
+                   & p_0Y = 1-f(p)          \\
+                   & f(p) = 1-p_0Y          \\
+    g^{-1}(Y) = \; & p = f^{-1}(1-p_0Y)     \\
+\end{align*}
+Since f is always constant except for the "jump" in $p_0$, it is not properly invertible. On the other hand, it is possible to find $f^{-1}$. Indeed, recalling the definition of inverse function, you have that
+\begin{align*}
+    g^{-1}(Y)=f^{-1}(1-p_0Y)=\{p| f(p)=1-p_0Y    \}
+\end{align*}
+And since $f(p)$ can be either $1$ or $0$, you need to find those $Y$ such that $1-p_0Y=0$ or $1-p_0Y=1$.
+\begin{align*}
+    Y=1/p_0 & \quad \Rightarrow 1-p_0Y=0  \quad \Rightarrow p\in[0,p_0]       \\
+    Y=0     & \quad \Rightarrow 1-p_0Y=1  \quad \Rightarrow  p\in(p_0,\infty)
+\end{align*}
+Evaluating in $Y=R_2$ and considering just the right extremum of the interval
+\begin{align*}
+    g^{-1}(R_2) = \begin{cases}
+                      p_0    & R_2= 1/p_0       \\
+                      \infty & \text{otherwise}
+                  \end{cases}
+\end{align*}
+But again, since it is not given that $R_2 = g(p)$, you generalizes such formula with
+\begin{align*}
+    g^{-1}(R_2) = \begin{cases}
+                      p_0    & R_2>0            \\
+                      \infty & \text{otherwise}
+                  \end{cases}
+\end{align*}
+By doing so, whether $R_2>0$ or $R_2=0$, the theoretical value of the position evaluated in $g^{-1}(R_2)$ is always equal to one. Indeed
+\begin{align*}
+    V(p)|_{p=g^{-1}(R_2)} & =f(g^{-1}(R_2))+g^{-1}(R_2)*g(g^{-1}(R_2))      \\
+                          & =\begin{cases}
+                                 f(p_0)+p_0*g(p_0)=0+p_0\frac{1}{p_0}=1 & R_2>0 \\
+                                 f(\infty)+\infty*g(\infty)=1+0=1       & R_2=0
+                             \end{cases}
+\end{align*}
+Where $\infty*g(\infty)=0$ because $g$ goes to zero faster.
+\newline Recalling \eqref{eq:7}, the CFMM follows as
+\begin{align*}
+    \Psi(R_1.R_2) = R_1+pR_2-V(p)|_{p=g^{-1}(R_2)} = R_1 +p_0R_2 -1 \quad R_2>0
+\end{align*}
+Which is a linear market maker
+\section{Capped Call}
+Defining the payoff function as
+\begin{align*}
+    f(p) = \begin{cases}
+               0       & p\leq p_0     \\
+               p-p_0   & p_0<p\leq p_1 \\
+               p_1-p_0 & p>p_1
+           \end{cases}
+\end{align*}
+you have that $\frac{d}{dp}f(p)=I_{(p_0,p_1]}(p)$. Indeed, the differential of the payoff function is null everywhere except for the range $(p_0,p_1]$ where it is not constant depending on $p$
+Thus, recalling that $g(p)=\int_p^\infty \frac{1}{q}df(q)$, it makes sense considering $(p_0,p_1]$ as interval of integration, because only in such range $df(q)\neq 0$ (with $df(q)=dq$).
+Of course, when $p\leq p_0$, the interval of integration correspond to $(p_0,p_1]$ while when $p_0<p\leq p_1$ the interval of integration becomes $[p,p_1]$. If $p>p_1$ the interval of integration is completely eroded.
+It follows that the replication cost is
+\begin{align*}
+    g(p)=\begin{cases}
+             \int_{p_0}^{p_1} \frac{1}{q}dq = \log(\frac{p_1}{p_0}) & p\leq p_0     \\
+             \int_{p}^{p_1} \frac{1}{q}dq = \log(\frac{p_1}{p})     & p_0<p\leq p_1 \\
+             0                                                      & p>p_1
+         \end{cases}
+\end{align*}
+Since $g(p)$ is a continuous function, it is possible to invert it and find the inverse function $g^{-1}$. Because of this property, is possible to recall the handier notation of the CFMM function defined in \eqref{eq:8}
+\begin{align*}
+    g(p) =\;  Y   & = \log\left(\frac{p_1}{p}\right)\quad p\in[p_0,p_1] \\
+                  & = \log(p_1)-\log(p)                                 \\
+    ln(p)         & = \log(p_1)-Y                                       \\
+    e^{ln(p)}     & = e^{\log(p_1)-Y}                                   \\
+    g^{-1}(Y)=\;p & = p_1e^{-Y}                                         \\
+\end{align*}
+for what regards the interval:
+\begin{align*}
+     & p\in[p_0,p_1]                                                          \\
+     & p_1e^{-Y}\in [p_0,p_1]                                                 \\
+     & e^{-Y}\in \left[\frac{p_0}{p_1},1\right]                               \\
+     & \log(e^{-Y})\in \left[\log\left(\frac{p_0}{p_1}\right), \log(1)\right] \\
+     & -Y \in \left[\log\left(\frac{p_0}{p_1}\right), 0\right]                \\
+     & Y \in \left[0,\log\left(\frac{p_1}{p_0}\right)\right]                  \\
+\end{align*}
+it follows that the inverse of the replication cost $g^{-1}(Y)$ evaluated in $R_2$ is
+\begin{align*}
+    g^{-1}(R_2)=\;p & = p_1e^{-R_2} \quad R_2\in \left[0,\log\left(\frac{p_1}{p_0}\right)\right]
+\end{align*}
+Writing the CFMM function as defined in \eqref{eq:8} because of the continuiy of $g(\cdot)$:
+\begin{align*}
+    \Psi(R_1,R_2) & = R_1 - f(g^{-1}(R_2))    \\
+    \Psi(R_1,R_2) & = R_1 - (p_1e^{-R_2}-p_0) \\
+\end{align*}
+Which leads to
+\begin{align*}
+    \Psi(R_1,R_2) & = R_1 +p_0 -p_1e^{-R_2} \quad R_2\in \left[0,\log\left(\frac{p_1}{p_0}\right)\right]
+\end{align*}
+\newpage
+\section{Black-Scholes cash or nothing call}
+In such context the payoff function is the gaussian cumulative density function evaluated in the function $d(p)$ defined as:
+\begin{align*}
+    d(p) = \frac{log(p/K)-\frac{t\sigma^2}{2}}{\sigma \sqrt{t}}
+\end{align*}
+Where
+\begin{itemize}
+    \item $t>0$ is the maturity of the option-token
+    \item $K\geq 0$ is the strike price
+    \item $\sigma \geq 0$ is the implied volatility
+\end{itemize}
+So, you have that the payoff function corresponds to
+\begin{align*}
+    f(p) = \Phi(d(p))
+\end{align*}
+Where $\Phi(\cdot)$ denotes the standard gaussian CDF
+Recalling that $g(p)= \int_p^\infty \frac{f'(q)}{q}dq$  the replication cost is retrievable via the chain rule and integration by substitution.
+Indeed, via the chain rule it is possible to write
+\begin{align*}
+    f'(p) = \frac{d}{dp} \Phi(d(p)) = \Phi'(d(p))d'(p)
+\end{align*}
+Where $\Phi'(\cdot)$ denotes the standard gaussian probability density function (PDF) by definition
+It follows that
+\begin{align*}
+    g(p) = \int_p^\infty \frac{\Phi'(d(q))d'(q)}{q}dq
+\end{align*}
+Calling $u=d(q)$ you have that $du=d'(q) dq$, so $dq = \frac{du}{d'(q)}$ and the substituted function evaluates the extrema on integration
+\begin{align*}
+    g(p) = \int_{d(p)}^{d(\infty)} \frac{\Phi'(u)d'(q)}{q}\frac{du}{d'(q)}
+\end{align*}
+Recall also that, being a continuous function, you can write $q=d^{-1}(d(q))$ which corresponds to $d^{-1}(u)$
+It follows that
+\begin{align*}
+    g(p) = \int_{d(p)}^{d(\infty)} \frac{\Phi'(u)}{d^{-1}(u)}du
+\end{align*}
+The inverse of the function $d(\cdot)$ corresponds to
+\begin{align*}
+     & d(p)       = Y = \frac{log(p/K)-\frac{t\sigma^2}{2}}{\sigma \sqrt{t}} \\
+     & \sigma \sqrt{t}Y = log(p)-log(K) - \frac{t\sigma^2}{2}                \\
+     & log(p) = \sigma \sqrt{t}Y + log(K) + \frac{t\sigma^2}{2}              \\
+     & e^{log(p)} = e^{\sigma \sqrt{t}Y + log(K) + \frac{t\sigma^2}{2}}      \\
+     & d^{-1}(Y)     = p = K e^{\sigma \sqrt{t}Y + \frac{t\sigma^2}{2}}
+\end{align*}
+Since the standard gaussian density function corresponds to
+\begin{align*}
+    \Phi'(u) = \frac{1}{\sqrt{2\pi}} e^{-\frac{u^2}{2}}
+\end{align*}
+it follows that
+\begin{align*}
+    g(p) & = \int_{d(p)}^{d(\infty)} \frac{1}{\sqrt{2\pi}} e^{-\frac{u^2}{2}} \frac{du}{K e^{\sigma \sqrt{t}u + \frac{t\sigma^2}{2}}}  \\
+         & = \frac{1}{K}\int_{d(p)}^{d(\infty)} \frac{1}{\sqrt{2\pi}} e^{-\frac{u^2}{2}-\sigma \sqrt{t}u -\frac{t\sigma^2}{2}} du      \\
+         & = \frac{1}{K}\int_{d(p)}^{d(\infty)} \frac{1}{\sqrt{2\pi}} e^{-\frac{1}{2}\left(u^2+2\sigma \sqrt{t}u +t\sigma^2\right)} du \\
+         & = \frac{1}{K}\int_{d(p)}^{d(\infty)} \frac{1}{\sqrt{2\pi}} e^{-\frac{1}{2}\left(u^2+2\sigma \sqrt{t}u +t\sigma^2\right)} du \\
+         & = \frac{1}{K}\int_{d(p)}^{d(\infty)} \frac{1}{\sqrt{2\pi}} e^{-\frac{1}{2}(u+\sigma \sqrt{t})^2} du                         \\
+         & = \frac{1}{K}\int_{d(p)}^{d(\infty)} \Phi'(u+\sigma \sqrt{t}) du                                                            \\
+         & = \frac{1}{K} \left[\Phi(u+\sigma \sqrt{t})\right]^{d(\infty)}_{d(p)}                                                       \\
+\end{align*}
+Notice that
+\begin{align*}
+    \lim_{p\rightarrow\infty} d(p) = \lim_{p\rightarrow\infty} \frac{log(p/K)-\frac{t\sigma^2}{2}}{\sigma \sqrt{t}} = \infty
+\end{align*}
+And that by definition
+\begin{align*}
+    \lim_{u\rightarrow\infty} \Phi(u) = 1
+\end{align*}
+So, you have that
+\begin{equation}
+    g(p) = \frac{1-\Phi(d(p)+\sigma\sqrt{t})}{K}
+\end{equation}
+Which somehow reminds the replication cost seen in \eqref{eq:12}. On the other hand, in this case the replication cost is continuous, meaning that it is possible to use \eqref{eq:8} for writing the CFMM.\newline
+We firstly retrieve the inverse of the replication cost as follows:
+\begin{align*}
+     & g(p) = Y = \frac{1-\Phi(d(p)+\sigma\sqrt{t})}{K}       \\
+     & KY = 1-\Phi(d(p)+\sigma\sqrt{t})                       \\
+     & d(p)+\sigma\sqrt{t} = \Phi^{-1}(1-KY)                  \\
+     & g^{-1}(Y) = p = d^{-1}(\Phi^{-1}(1-KY)-\sigma\sqrt{t}) \\
+\end{align*}
+As shown previously, $d^{-1}(Y)     = p = K e^{\sigma \sqrt{t}Y + \frac{t\sigma^2}{2}}$, so
+\begin{align*}
+    g^{-1}(Y) & = K e^{\sigma \sqrt{t}\left(\Phi^{-1}(1-KY)-\sigma\sqrt{t}\right) + \frac{t\sigma^2}{2}} \\
+    g^{-1}(Y) & = K e^{\sigma \sqrt{t}\Phi^{-1}(1-KY) - \frac{t\sigma^2}{2}}                             \\
+\end{align*}
+Where $\Phi^{-1}(\cdot)$ is the quantile function. \newline
+Thus, evaluating $\Psi(R_1,R_2)$ in the minimum point $p^*=g^{-1}(R_2)$
+\begin{align*}
+    \Psi(R_1,R_2) & = R_1 - f(g^{-1}(R_2))                                                      \\
+                  & = R_1 - f(K e^{\sigma \sqrt{t}\Phi^{-1}(1-KR_2) - \frac{t\sigma^2}{2}})     \\
+                  & = R_1-\Phi(d(K e^{\sigma \sqrt{t}\Phi^{-1}(1-KR_2) - \frac{t\sigma^2}{2}}))
+\end{align*}
+But recalling that $d^{-1}(Y) = K e^{\sigma \sqrt{t}Y + \frac{t\sigma^2}{2}}$
+\begin{align*}
+    \Psi(R_1,R_2) & = R_1-\Phi(d(d^{-1}(\Phi^{-1}(1-KR_2)-\sigma\sqrt{t}))) \\
+\end{align*}
+And, since $d(\cdot)$ is continuous, the CFMM formula is the following:
+\begin{equation}
+    \Psi(R_1,R_2)  = R_1-\Phi(\Phi^{-1}(1-KR_2)-\sigma\sqrt{t})
+\end{equation}
+\section{Logarithmic payoff}
+Consider the payoff function as
+\begin{align*}
+    f(p)=\begin{cases}
+             0           & p<p_0     \\
+             \log(p/p_0) & p\geq p_0 \\
+         \end{cases} = \log(p/p_0) I_{[p_0,\infty)}(p)
+\end{align*}
+Analogously to the capped call case, we notice that the differential is nonnull just in the range $[p_0,\infty)$. Considering this range, you have that
+\begin{align*}
+    f'(p) =\frac{d}{dp} log(p/p_0) = \frac{d}{dp}\left(log(p)-log(p_0)\right) = 1/p
+\end{align*}
+so the replication cost is
+\begin{align*}
+    g(p) = \begin{cases}
+               \int^\infty_{p_0} \frac{1/p}{p}dp = \left[-\frac{1}{p}\right]^\infty_{p_0} =\frac{1}{p_0} & p<p_0     \\
+               \int^\infty_{p} \frac{1/q}{q}dq= \left[-\frac{1}{q}\right]^\infty_{p} =\frac{1}{p}        & p\geq p_0
+           \end{cases}
+\end{align*}
+Also in this case $g(\cdot)$ is continuous, thus it is possible to write the CFMM in the simplified version
+\begin{align*}
+     & g(p) = Y = \frac{1}{p} \quad p\geq p_0                                                \\
+     & g^{-1}(Y) =p =  \frac{1}{Y} \quad \frac{1}{Y}\geq p_0 \Rightarrow Y\leq \frac{1}{p_0}
+\end{align*}
+So, evaluating $\Psi(R_1,R_2)$ in the minimum point $p^*=g^{-1}(R_2)$
+\begin{align*}
+    \Psi(R_1,R_2) & = R_1 - f(g^{-1}(R_2))                     \\
+                  & = R_1 - f\left(\frac{1}{R_2}\right)        \\
+                  & = R_1 - \log\left(\frac{1/R_2}{p_0}\right) \\
+                  & = R_1 - \left(\log(1) -\log(p_0R_2)\right) \\
+                  & = R_1 + \log(p_0R_2)                       \\
+                  & = R_1 + \log(p_0) + \log(R_2)              \\
+\end{align*}
+So, the definitive trading function is
+\begin{equation}
+    \Psi(R_1,R_2) = R_1 + \log(p_0) + \log(R_2) \quad R_2 \in \left[0, \frac{1}{p_0}\right]
+\end{equation}
+Assuming that the price process can be described by a geometric Brownian motion, it is possible to write the price differential via the following stochastic differential equation (SDE):
+\begin{align*}
+    P'_t & = \mu P_t + \sigma P_tW'_t
+\end{align*}
+Where $W_t$ is the Brownian motion. Alternatively, multiplying and dividing both sides by $dt$ the SDE can be written using differentials:
+\begin{equation}
+    dP_t = \mu P_t dt + \sigma P_t dW_t
+\end{equation}
+And assuming zero drift ($\mu=0$), the relation is reduced to $dP_t = \sigma P_t dW_t$
+The portfolio value function in this context is a piecewise function defined as follows
+\begin{align*}
+    V(p) = f(p) +pg(p) = \begin{cases}
+                             0 +p\frac{1}{p_0} = \frac{p}{p_0}           & p<p_0     \\
+                             \log(p/p_0) + p\frac{1}{p} = 1+ \log(p/p_0) & p\geq p_0
+                         \end{cases}
+\end{align*}
+Restricting the case to $p\in[p_0,\infty)$ (because in this range the payoff is nonnull) and considering the cumulative arbitrageurs earnings equation in continuous setting defined in \eqref{eq:11}
+\begin{align*}
+    \Pi_n & = V(P_0) -V(P_T) +     \int_{0}^{T}g(P_t)  \; dP_t                       \\
+          & =(1+\log(P_0/P_0))-(1+\log(P_T/P_0)) + \int_{0}^{T}\frac{1}{P_t} \; dP_t \\
+          & =1+0-1-\log(P_T/P_0) + \int_{0}^{T}\frac{1}{P_t} \; dP_t                 \\
+          & =\log(P_0/P_T) + \int_{0}^{T}\frac{1}{P_t} \; dP_t
+\end{align*}
+Plugging-in the $dP_t$ taken from the SDE
+\begin{align*}
+    \Pi_n =\log(P_0/P_T) + \int_{0}^{T}\frac{1}{P_t} \; \sigma P_t dW_t
+\end{align*}
+Which leads to
+\begin{equation}
+    \Pi_n =\log(P_0/P_T) + \int_{0}^{T} \; \sigma dW_t
+\end{equation}
+Recalling the following properties:
+\begin{itemize}
+    \item $W_0=0$
+    \item $W_t-W_s \sim N(0,t-s) \quad s\in[0,t]$
+    \item The general solution for a geometric Brownian motion is $S_t = S_0*e^{(\mu-\frac{\sigma^2}{2})t +W_t\sigma}$
+\end{itemize}
+Since the SDE was designed with zero drift ($\mu=0$)
+\begin{align*}
+    \Pi_n & =\log\left(\frac{P_0}{P_0*e^{-\frac{\sigma^2}{2}T +W_T\sigma}}\right) + \sigma[W_t]^T_0 \\
+          & =\log\left(\frac{1}{e^{-\frac{\sigma^2}{2}T +W_T\sigma}}\right) + \sigma[W_t]^T_0       \\
+          & =\log(1)-\log\left(e^{-\frac{\sigma^2}{2}T +W_T\sigma}\right) + \sigma[W_t]^T_0         \\
+          & =-\left(-\frac{\sigma^2}{2}T +W_T\sigma\right) + \sigma(W_T-0)                          \\
+          & = \frac{\sigma^2}{2}T
+\end{align*}
+It follows that in a continuous setting, the cumulative arbitrageur profits approximate the expected payoff of a variance swap without the need of an oracle. In real world such finding might not be completely feasible because of the need of an unbounded amount of capital \textbf{}to be sure about the effectiveness of the replication (indeed recall that for $p_0\rightarrow 0$ an infinite amount of risky asset is needed as replication cost)
+\section{Capped power payoff}
+Fixing a generic $\alpha\in\mathbb{R}$, consider the following payoff function
+\begin{align*}
+    f(p) = \begin{cases}
+               0                      & p<p_0             \\
+               p^\alpha -p_0^\alpha   & p_0\leq p\leq p_1 \\
+               p_1^\alpha -p_0^\alpha & p> p_1            \\
+           \end{cases}
+\end{align*}
+Such payoff function looks very similiar to the case of a capped call. Again, considering that the differential of the payoff function is nonnull only for $p\in[p_0,p_1]$, we compute the derivative of the payoff function in such interval, which will correspond to the interval of integration for the replication cost function
+\begin{align*}
+    \frac{d}{dp}f(p) = \alpha p^{\alpha-1} \quad p\in[p_0,p_1]
+\end{align*}
+It follows that, since $g(p)=\int_p^\infty \frac{f'(q)}{q}dq$
+\begin{align*}
+    g(p)=\begin{cases}
+             \int_{p_0}^{p_1} \frac{\alpha p^{\alpha-1}}{p} \; dp = \alpha \int_{p_0}^{p_1}  p^{\alpha-2} \; dp                                                 = \alpha\left[\frac{p^{\alpha-1}}{\alpha-1}\right]^{p_1}_{p_0}                                            & p<p_0              \\
+             \int_{p}^{p_1} \frac{\alpha q^{\alpha-1}}{q} \; dq                                                     = \alpha \int_{p}^{p_1}  q^{\alpha-2} \; dq                                              = \alpha\left[\frac{q^{\alpha-1}}{\alpha-1}\right]^{p_1}_{p} & p_0 \leq p\leq p_1 \\
+             0                                                                                                                                                                                                                                                            & p>p_1
+         \end{cases}
+\end{align*}
+Which leads to
+\begin{align*}
+    g(p)=\begin{cases}
+             \frac{\alpha}{\alpha-1}(p_1^{\alpha-1}-p_0^{\alpha-1}) & p<p_0              \\
+             \frac{\alpha}{\alpha-1}(p_1^{\alpha-1}-p^{\alpha-1})   & p_0 \leq p\leq p_1 \\
+             0                                                      & p>p_1
+         \end{cases}
+\end{align*}
+Since $g(\cdot)$ is continuous, it is possible to use the simoplified version of the CFMM defined in \eqref{eq:8}.
+\begin{align*}
+     & g(p) = Y = \frac{\alpha}{\alpha-1}(p_1^{\alpha-1}-p^{\alpha-1}) \quad p\in[p_0,p_1] \\
+     & \frac{\alpha-1}{\alpha}Y = p_1^{\alpha-1}-p^{\alpha-1}                              \\
+     & p^{\alpha-1} = p_1^{\alpha-1} - \frac{\alpha-1}{\alpha}Y                            \\
+     & g^{-1}(Y) = p = \sqrt[\alpha-1]{p_1^{\alpha-1} - \frac{\alpha-1}{\alpha}Y}
+\end{align*}
+Thus, the inverse of the replication cost, evaluated in $R_2$ is
+\begin{align*}
+     & g^{-1}(R_2) = p = \sqrt[\alpha-1]{p_1^{\alpha-1} + \frac{1-\alpha}{\alpha}R_2}
+\end{align*}
+The range of $R_2$ for such relation instead is
+\begin{align*}
+     & p\in[p_0,p_1]                                                                            \\
+     & \sqrt[\alpha-1]{p_1^{\alpha-1} + \frac{1-\alpha}{\alpha}R_2} \in [p_0,p_1]               \\
+     & p_1^{\alpha-1} + \frac{1-\alpha}{\alpha}R_2 \in [p_0^{\alpha-1},p_1^{\alpha-1}]          \\
+     & \frac{1-\alpha}{\alpha}R_2 \in [p_0^{\alpha-1}-p_1^{\alpha-1},0]                         \\
+     & -\frac{\alpha-1}{\alpha}R_2 \in [p_0^{\alpha-1}-p_1^{\alpha-1},0]                        \\
+     & \frac{\alpha-1}{\alpha}R_2 \in [0,p_1^{\alpha-1}-p_0^{\alpha-1}]                         \\
+     & R_2 \in \left[0,\frac{\alpha}{\alpha-1}\left(p_1^{\alpha-1}-p_0^{\alpha-1}\right)\right] \\
+     & R_2\in[0,g(p_0)]
+\end{align*}
+To sum up, the inverse of the replication cost function is
+\begin{align*}
+    g^{-1}(R_2) = \sqrt[\alpha-1]{p_1^{\alpha-1} + \frac{1-\alpha}{\alpha}R_2} \quad R_2\in[0,g(p_0)]
+\end{align*}
+It follows that:
+\begin{align*}
+    \Psi(R_1,R_2) & = R_1 -f(g^{-1}(R_2))                                                \\
+                  & = R_1 - (p^\alpha -p_0^\alpha)|_{p=g^{-1}(R_2)} \quad p\in[p_0, p_1]
+\end{align*}
+Thus, the CFMM for capped power payoffs is given by
+\begin{align*}
+    \Psi(R_1,R_2) = R_1 +p_0^\alpha - \left(p_1^{\alpha-1} + \frac{1-\alpha}{\alpha}R_2\right)^{\frac{\alpha}{\alpha-1}} \quad R_2\in[0,g(p_0)]
+\end{align*}
+\newpage
+\section{Constant Proportion Portfolio}
+In this setting the liquidity provider wants that $w$ is allocated in $f(p)$ and $(1-w)$ is allocated in $g(p)$ and that this proportion remains constant over time. For example, it might happen that the risky asset drops in price while the numeraire remains constant: now the incidence of the numeraire on the overall value of the portfolio is higher than before, while the incidence of the risky asset has decreased. In order to achieve the initial distribution of weights, the liquidity provider should rebalance the position by spending numeraire (decreasing its amount) for buying risky asset (increasing its amount). In other words, this relation must hold
+\begin{align*}
+    w f(p) = p(1-w) g(p) \quad \forall p\in[\alpha,\beta] \; \;\alpha\geq 0, \beta\geq \alpha
+\end{align*}
+Which after some algebraic manipulations and taking derivative on both sides(recalling also \eqref{eq:2}) leads to
+\begin{align*}
+     & w\frac{f(p)}{p} =(1-w)g(p)                                       \\
+     & w\frac{d}{dp}\left(\frac{f(p)}{p}\right) = (1-w)\frac{d}{dp}g(p) \\
+     & w\frac{f'(p)p-f(p)}{p^2} = (1-w)\left(-\frac{f'(p)}{p}\right)    \\
+     & w\frac{f'(p)p-f(p)}{p} = (w-1)f'(p)                              \\
+     & wf'(p) -w\frac{f(p)}{p} = wf'(p) -f'(p)                          \\
+     & wf(p) = pf'(p)                                                   \\
+     & f'(p) = \frac{w}{p}f(p)
+\end{align*}
+Which can be seen as a first order linear homogenous differential equation.
+\begin{align*}
+     & \frac{f'(p)}{f(p)} = \frac{w}{p}                 \\
+     & \int \frac{f'(p)}{f(p)} dp = \int \frac{w}{p} dp
+\end{align*}
+Recalling that $\int\frac{f'(p)}{f(p)}dp=ln|f(p)| +c$
+\begin{align*}
+     & ln|f(p)| +c_a = w\log(p) +c_b                    \\
+     & ln|f(p)| = w\log(p) +c_c      \qquad c_c=c_b-c_a \\
+     & e^{ln|f(p)|} = e^{w\log(p) +c_c}                 \\
+     & f(p) = p^w e^{c_c}
+\end{align*}
+Thus, calling $C=e^{c_c}$ as a positive arbitrary constant, you come up with the following payoff function:
+\begin{align*}
+    f(p)=Cp^w
+\end{align*}
+Recalling that $g(p)=\int_p^\infty \frac{f'(q)}{q} dq$
+\begin{align*}
+    g(p) & = \int_p^\infty \frac{Cwq^{w-1}}{q} dq                  \\
+         & =Cw\int_p^\infty q^{w-2} dq                             \\
+         & =Cw\left[\frac{q^{w-1}}{w-1} \right]_p^\infty           \\
+         & =Cw\left[\frac{1}{w-1}\frac{1}{q^{1-w}}\right]_p^\infty
+\end{align*}
+Recalling that $w\leq 1$ (since it is a weight)
+\begin{align*}
+    g(p) = Cw\left(0-\frac{1}{w-1}\frac{1}{p^{1-w}}\right)
+\end{align*}
+Which leads to
+\begin{align*}
+    g(p)=\frac{Cw}{1-w}\frac{1}{p^{1-w}}
+\end{align*}
+Since $g(\cdot)$ is a continuous function, it is possible to write the CFMM for constant proportion portfolio via the shortened notation. First we compute $g^{-1}(Y)$
+\begin{align*}
+     & g(p) =Y  = \frac{Cw}{1-w}\frac{1}{p^{1-w}}                   \\
+     & p^{1-w} = \frac{Cw}{(1-w)Y}                                  \\
+     & g^{-1}(Y)=p = \left(\frac{Cw}{(1-w)Y}\right)^{\frac{1}{1-w}}
+\end{align*}
+Or Alternatively
+\begin{align*}
+     & g^{-1}(Y) = \left(\frac{w}{1-w} \frac{C}{Y}\right)^{\frac{1}{1-w}}
+\end{align*}
+Which leads to the notation used in the paper
+\begin{align*}
+     & g^{-1}(Y) = \left(\frac{1-w}{w} \frac{Y}{C}\right)^{-\frac{1}{1-w}}
+\end{align*}
+Thus, the CFMM for constant proportion portfolio is given by
+\begin{align*}
+    \Psi(R_1,R_2) & = R_1 -f(p)|_{p=g^{-1}(R_2)}                                                     \\
+                  & = R_1 -Cp^w|_{p=g^{-1}(R_2)}                                                     \\
+                  & = R_1 -C\left(\left(\frac{1-w}{w} \frac{R_2}{C}\right)^{-\frac{1}{1-w}}\right)^w
+\end{align*}
+Which leads to
+\begin{equation}
+    \Psi(R_1,R_2)= R_1 -\left(\frac{1-w}{w} \frac{R_2}{C}\right)^{-\frac{w}{1-w}}  \label{eq:18}
+\end{equation}
+Since $C$ is an arbitrary constant (we obtained it by solving the indefinite integral), we arbitrarily rename $C^{-1}=C$
+By doing the following arrangement, you can obtain an equivalent CFMM
+
+\begin{align*}
+     & \Psi(R_1,R_2)                    = R_1 -\left(\frac{1-w}{Cw}\right)^{-\frac{w}{1-w}} R_2^{-\frac{w}{1-w}}                                                                                                                             \\
+     & \Psi(R_1,R_2)R_2^{\frac{w}{1-w}} = R_1R_2^{\frac{w}{1-w}} -\left(\frac{1-w}{Cw}\right)^{-\frac{w}{1-w}}                                                                                                                               \\
+     & \Psi(R_1,R_2)R_2^{\frac{w}{1-w}} = R_1R_2^{\frac{w}{1-w}} -\left(\frac{Cw}{1-w}\right)^{\frac{w}{1-w}}                                                                                                                                \\
+     & \Psi(R_1,R_2)R_2^{\frac{w}{1-w}} +\left(\frac{Cw}{1-w}\right)^{\frac{w}{1-w}} = R_1R_2^{\frac{w}{1-w}}                                                                                                                                \\
+     & \left(\Psi(R_1,R_2)R_2^{\frac{w}{1-w}} +\left(\frac{Cw}{1-w}\right)^{\frac{w}{1-w}}\right)^{1-w} = \left(R_1R_2^{\frac{w}{1-w}}\right)^{1-w}                                                                                          \\
+     & \left(\Psi(R_1,R_2)R_2^{\frac{w}{1-w}} +\left(\frac{Cw}{1-w}\right)^{\frac{w}{1-w}}\right)^{1-w} - \left(\frac{Cw}{1-w}\right)^{\frac{w}{1-w}}= R_1^{1-w}R_2^w                          - \left(\frac{Cw}{1-w}\right)^{\frac{w}{1-w}} \\
+\end{align*}
+Calling $C'=\left(\frac{Cw}{1-w}\right)^{\frac{w}{1-w}}$ and \newline  $ \tilde{\Psi}(R_1,R_2)= \left(\Psi(R_1,R_2)R_2^{\frac{w}{1-w}} +C'\right)^{1-w} - C'$ \newline you come up with the following CFMM
+\begin{align*}
+    \tilde{\Psi}(R_1,R_2) = R_1^{1-w}R_2^w - C'
+\end{align*}
+That corresponds to the constant mean market makers. Such CFMM is equivalent to \eqref{eq:18} since the reserves $(R_1,R_2)$
+Which is equivalent to $\Psi(R_1,R_2)$ in the sense that $(R_1,R_2)$ satisfy $\Psi(R_1,R_2)\geq 0$ if and only if $\tilde{\Psi}(R_1,R_2)\geq 0$
+\end{document}
