@@ -115,6 +115,7 @@ Thus, considering $p\in[\alpha,\beta] \; \alpha\geq 0, \beta \geq \alpha$ you ca
 \begin{equation}
     g(p) =\int_{p}^{\beta}\frac{f'(q)}{q}dq= \int_{p}^{\beta}\frac{df(q)}{q}
 \end{equation}
+
 \section{Portfolio value}
 As the price moves, new equilibrium portfolios are reached. Defining a price range, in order to group all the equilibrium portfolios within that price range we can define
 \begin{align*}
@@ -141,9 +142,10 @@ Recalling \eqref{eq:2} you can write
     V(p) & =V(\alpha) + (pg(p)-ag(\alpha))  + (f(p)-f(\alpha))                         \\
     V(p) & =V(\alpha)  -f(\alpha)-ag(\alpha)+f(p)+pg(p)                                \\
     V(p) & =V(\alpha)  -V(\alpha)+V(p)                                                 \\
-    V(p) & =V(p)                                                                       \\
+    V(p) & =V(p)                                                                       
 \end{align*}
-And this identity proofs \eqref{eq:4}
+\newpage
+And this identity proves \eqref{eq:4}
 \newline
 Some properties of the portfolio value function $V(p)$ are:
 \begin{itemize}
@@ -157,8 +159,54 @@ Indeed (recall that with \eqref{eq:2} we showed that $g(p)$ is nonincreasing
     \frac{d^2}{dp^2}V(P) & =\frac{d}{dp} \left(\frac{d}{dp}V(P)\right)                                                   \\
                          & =\frac{d}{dp} \left(f'(p) +g(p) +pg'(p)\right)                                                \\
                          & =\frac{d}{dp} \left(f'(p) +g(p) +p\left(-\frac{1}{p}f'(p)\right) \right)                      \\
-                         & =\frac{d}{dp} g(p) \leq 0 \quad \forall p\in[\alpha,\beta] \; \alpha\geq 0, \beta \geq \alpha \\
+                         & =\frac{d}{dp} g(p) \leq 0 \quad \forall p\in[\alpha,\beta] \; \alpha\geq 0, \beta \geq \alpha 
 \end{align*}
+\subsection{Alternative Proof}
+An alternative proof of the findings made so far is based on the use of differentials and of the property $\lim_{p\rightarrow \infty}g(p) = 0$ assumed for the replication cost $g$. Indeed, it was previously mentioned that ``the target amount of numeraire asset $f(p)$ is reached by selling risky asset'': this is nothing more than a self-financing portfolio because the infinitesimal variation of the numeraire is always given by an infinitesimal variation of the risky asset (times the price). In other words 
+\begin{align*}
+    df(p)+dg(p)p=0
+\end{align*}
+From here, it is possible to retrieve the replication cost function via a trivial application of the second fundamental theorem of calculus, according to which: 
+\begin{align*}
+    \int_a^b f(x)dx = F(b)-F(a) = -(F(a)-F(b)) = -\int_b^a f(x) dx
+\end{align*}
+Indeed
+\begin{align*}
+    &df(p)+dg(p)p=0\\
+    &dg(p) = - \frac{df(p)}{p}\\
+    &\int_s^p dg(q) = \int_s^p - \frac{df(q)}{q}\\
+    &\int_s^p dg(q) = - \int_s^p  \frac{df(q)}{q}& \text{(linearity)}\\ 
+    &-\int_p^s dg(q) = \int_p^s  \frac{df(q)}{q}& \text{(s.t.f.c)}\\ 
+    &-(g(s)-g(p)) = \int_p^s  \frac{df(q)}{q}\\
+    &g(p) = g(s) +\int_p^s  \frac{df(q)}{q}\\
+\end{align*}
+ 
+It follows that, for $s\to\infty$ 
+\begin{align*}
+    &\lim_{s\to\infty}g(p) = \lim_{s\to\infty} \left(g(s) +\int_p^s  \frac{df(q)}{q}\right)\\
+    &g(p) = \int_p^\infty  \frac{df(q)}{q} 
+\end{align*}
+That is the replication cost function that will be used in the following sections. \newline
+For what regards the differential of the portfolio value function $V(p)$
+\begin{align*}
+    dV(p) &= d(f(p))+d(g(p)p)\\
+    & = df(p)+f(p)d1+dg(p)p+g(p)dp&\text{(Leibniz rule)}\\
+    &=df(p)+dg(p)p+g(p)dp
+\end{align*}
+Recall that $d1=0$ being the differential of a constant function. Plugging the self-financing feature $df(p)+dg(p)p=0$ it follows that 
+\begin{align*}
+    dV(p) = 0 + g(p)dp
+\end{align*}
+And so, it is possible to rewrite the portfolio value function as 
+\begin{align*}
+    &\int_\alpha^p dV(q) = \int_\alpha^p g(q) dq\\
+    & V(p)-V(\alpha) =  \int_\alpha^p g(q) dq\\
+    & V(p) = V(\alpha) + \int_\alpha^p g(q) dq
+\end{align*} 
+That is exactly the alternative way of defining the portfolio value function specified in \eqref{eq:4}.\newline\newline
+Now it is possible to have a better understanding of what it is going on: we have a portfolio value function made by numeraire asset and risky asset whose quantities are functions of time, that are respectively a payoff function and the associated replication cost. \newline
+Thus, since our goal is to mimic the payoff function on a DEX, it would be sufficient that the pool, made by reserves of numeraire and risky assets, mimics the portfolio value function at every given price: indeed we are going to build the invariant function for the CFMM from the infimum of the ``tracking value error'' function $R_1+pR_2-V(p)$
+
 \section{CFMM}
 Taking advantage of the properties of the portfolio value function $V(p)$ it is possible to write an invariant trading function $\Psi(R_1,R_2)$ where $\Psi: \mathbb{R^\text{2}_+}\rightarrow\mathbb{R}$ for a given price level:
 \begin{equation}
@@ -349,7 +397,7 @@ Analogously, it is possible to write
     g(p)=\int_{p}^{\infty}\frac{1}{q}  \; df(q)=\frac{1}{p_0}(f(\infty)-f(p))=\frac{1-f(p)}{p_0} \quad p_0>0, \; p\in[0,\infty) \label{eq:12}
 \end{equation}
 In other words when $p\leq p_0$ the liquidity provider opens a position $(f(p),g(p))=\left(0,\frac{1}{p_0}\right)$ and sells the option-token to another buyer.
-Whenever $p>p_0$, arbitrageurs are incentivized to trade against the CFMM in order to rebalance the position. Indeed, now they are allowed to sell $\frac{1}{p_0}$ at the external price $p$ obtaining $\frac{p}{p_0}$ amount of numeraire (recall that $\frac{p}{p_0}>1 $ because $ p>p_0$). Thus, they leave one unit of numeraire in the CFMM and take the rest as a profit: The position now moved to $(f(p),g(p))=(0,1)$ and the arbitrageur gained $\frac{p}{p_0}-1$
+Whenever $p>p_0$, arbitrageurs are incentivized to trade against the CFMM in order to rebalance the position. Indeed, now they are allowed to sell $\frac{1}{p_0}$ at the external price $p$ obtaining $\frac{p}{p_0}$ amount of numeraire (recall that $\frac{p}{p_0}>1 $ because $ p>p_0$). Thus, they leave one unit of numeraire in the CFMM and take the rest as a profit: The position now moved to $(f(p),g(p))=(1,0)$ and the arbitrageur gained $\frac{p}{p_0}-1$ 
 \newline\newline
 The replication cost $g$ inherits from the payoff function $f$ the discontinuous nature: thus the condition $\exists\; p\geq 0 : g(p)=R_2$ (depicted in \eqref{eq:6}) is not guaranteed.
 On the other hand, the inverse of the replication cost is the following
